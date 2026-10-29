@@ -38,6 +38,7 @@ const screenShareButton = document.getElementById("screen-share-button");
 const screenShareLabel = document.getElementById("screen-share-label");
 const screenPanel = document.getElementById("screen-panel");
 const screenGrid = document.getElementById("screen-grid");
+const enableAudioButton = document.getElementById("enable-audio-button");
 
 const params = new URLSearchParams(window.location.search);
 let roomId = params.get("room") || crypto.randomUUID();
@@ -73,6 +74,10 @@ let microphonePreferences = {
   pushToTalk: localStorage.getItem("sout-ptt") === "true"
 };
 const peers = new Map();
+const defaultIceServers = [{ urls: "stun:stun.l.google.com:19302" }];
+const defaultMaxFileSize = 8 * 1024 * 1024;
+let rtcIceServers = defaultIceServers;
+let maxFileSize = defaultMaxFileSize;
 let socket;
 let localStream;
 let toastTimer;
@@ -83,6 +88,22 @@ function updateRoomUrl() {
   urlParams.set("room", roomId);
   urlParams.set("title", roomName);
   history.replaceState(null, "", `${window.location.pathname}?${urlParams.toString()}`);
+}
+
+async function loadIceServers() {
+  const response = await fetch("/api/ice", { cache: "no-store" });
+  if (!response.ok) throw new Error(`ICE configuration request failed: ${response.status}`);
+  const configuration = await response.json();
+  if (
+    !Array.isArray(configuration.iceServers) ||
+    configuration.iceServers.length === 0 ||
+    !Number.isSafeInteger(configuration.maxFileSize) ||
+    configuration.maxFileSize < 1 ||
+    configuration.maxFileSize > defaultMaxFileSize
+  ) {
+    throw new Error("The server returned invalid connection or file-transfer settings.");
+  }
+  return configuration;
 }
 
 if (!params.has("room") || !params.has("title")) updateRoomUrl();
@@ -247,9 +268,7 @@ function createPeer(peer) {
   if (peers.has(peer.id)) return peers.get(peer.id);
 
   const peerSocket = socket;
-  const peerConnection = new RTCPeerConnection({
-    iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
-  });
+  const peerConnection = new RTCPeerConnection({ iceServers: rtcIceServers });
   const screenTransceiver = peerConnection.addTransceiver("video", { direction: "sendrecv" });
   const audio = document.createElement("audio");
   audio.className = "peer-audio";
@@ -278,8 +297,14 @@ function createPeer(peer) {
     person,
     avatar,
     name: peer.name,
+    polite: socket.id.localeCompare(peer.id) > 0,
+    makingOffer: false,
+    ignoreOffer: false,
+    isSettingRemoteAnswerPending: false,
     signalQueue: Promise.resolve(),
     pendingCandidates: [],
+    iceRestartAttempts: 0,
+    iceRestartTimer: null,
     monitorCleanup: null,
     screenSender: screenTransceiver.sender,
     screenTile: null,
@@ -290,10 +315,35 @@ function createPeer(peer) {
   participants.classList.toggle("many", peers.size > 4);
   updateFileRecipients();
 
-  if (localStream) {
-    (processedStream || localStream).getTracks().forEach((track) => peerConnection.addTrack(track, processedStream || localStream));
-    audio.volume = microphonePreferences.speakerVolume;
-  }
+  const restartIceConnection = (delay) => {
+    clearTimeout(state.iceRestartTimer);
+    state.iceRestartTimer = setTimeout(() => {
+      const currentState = peerConnection.iceConnectionState;
+      if (peerConnection.signalingState === "closed" || currentState === "connected" || currentState === "completed") return;
+      if (state.iceRestartAttempts >= 2 || typeof peerConnection.restartIce !== "function") {
+        caption.textContent = "تعذّر الاتصال";
+        return;
+      }
+
+      state.iceRestartAttempts += 1;
+      try {
+        peerConnection.restartIce();
+      } catch (error) {
+        console.error("Could not restart ICE:", error);
+        caption.textContent = "تعذّر الاتصال";
+        return;
+      }
+      state.iceRestartTimer = setTimeout(() => {
+        const latestState = peerConnection.iceConnectionState;
+        if (peerConnection.signalingState === "closed" || latestState === "connected" || latestState === "completed") return;
+        if (state.iceRestartAttempts < 2) {
+          restartIceConnection(0);
+        } else {
+          caption.textContent = "تعذّر الاتصال";
+        }
+      }, 12_000);
+    }, delay);
+  };
 
   peerConnection.ontrack = (event) => {
     if (event.track.kind === "video") {
@@ -315,15 +365,48 @@ function createPeer(peer) {
     audio.srcObject = event.streams[0];
     state.monitorCleanup?.();
     state.monitorCleanup = monitorAudio(event.streams[0], avatar);
-    audio.play().catch(() => showToast("اضغط في الصفحة لتفعيل الصوت"));
+    audio.play().catch((error) => {
+      console.error("Could not play peer audio:", error);
+      enableAudioButton.classList.remove("hidden");
+      showToast("اضغط «تفعيل الصوت» للسماح بتشغيل صوت المشاركين");
+    });
   };
   peerConnection.onicecandidate = (event) => {
     if (event.candidate) peerSocket.emit("signal", { target: peer.id, signal: { candidate: event.candidate } });
+  };
+  peerConnection.onnegotiationneeded = async () => {
+    try {
+      state.makingOffer = true;
+      await peerConnection.setLocalDescription();
+      peerSocket.emit("signal", { target: peer.id, signal: { description: peerConnection.localDescription } });
+    } catch (error) {
+      console.error("Could not negotiate with peer:", error);
+      showToast("تعذر بدء الاتصال مع أحد المشاركين");
+    } finally {
+      state.makingOffer = false;
+    }
+  };
+  peerConnection.oniceconnectionstatechange = () => {
+    const iceState = peerConnection.iceConnectionState;
+    if (iceState === "connected" || iceState === "completed") {
+      clearTimeout(state.iceRestartTimer);
+      state.iceRestartTimer = null;
+      state.iceRestartAttempts = 0;
+      caption.textContent = state.muted ? "الميكروفون مكتوم" : "متصل";
+      return;
+    }
+    if (iceState !== "disconnected" && iceState !== "failed") return;
+    restartIceConnection(iceState === "disconnected" ? 5_000 : 0);
   };
   peerConnection.onconnectionstatechange = () => {
     if (peerConnection.connectionState === "connected") caption.textContent = state.muted ? "الميكروفون مكتوم" : "متصل";
     if (peerConnection.connectionState === "failed") caption.textContent = "تعذّر الاتصال";
   };
+
+  if (localStream) {
+    (processedStream || localStream).getTracks().forEach((track) => peerConnection.addTrack(track, processedStream || localStream));
+    audio.volume = microphonePreferences.speakerVolume;
+  }
 
   if (screenShareStream) {
     state.screenSender.replaceTrack(screenShareStream.getVideoTracks()[0])
@@ -335,22 +418,13 @@ function createPeer(peer) {
 
   updateEmptyNote();
 
-  if (socket.id.localeCompare(peer.id) < 0) {
-    peerConnection.createOffer()
-      .then((offer) => peerConnection.setLocalDescription(offer))
-      .then(() => peerSocket.emit("signal", { target: peer.id, signal: { description: peerConnection.localDescription } }))
-      .catch((error) => {
-        console.error("Could not start peer connection:", error);
-        showToast("تعذر بدء الاتصال مع أحد المشاركين");
-      });
-  }
-
   return state;
 }
 
 function removePeer(peerId) {
   const peer = peers.get(peerId);
   if (!peer) return;
+  clearTimeout(peer.iceRestartTimer);
   peer.connection.close();
   peer.monitorCleanup?.();
   removeScreenTile(peer.screenTile);
@@ -364,6 +438,7 @@ function removePeer(peerId) {
 
 function clearPeers() {
   peers.forEach((peer) => {
+    clearTimeout(peer.iceRestartTimer);
     peer.connection.close();
     peer.monitorCleanup?.();
     removeScreenTile(peer.screenTile);
@@ -378,6 +453,7 @@ function clearPeers() {
 
 function connectToRoom(name) {
   const roomSocket = io();
+  let connectionSetup = 0;
   socket = roomSocket;
   roomSocket.on("connect_error", (error) => {
     if (controlPanel.classList.contains("hidden")) {
@@ -396,15 +472,27 @@ function connectToRoom(name) {
     }
   });
 
-  roomSocket.on("connect", () => {
-    if (socket !== roomSocket) return;
+  roomSocket.on("connect", async () => {
+    const setup = ++connectionSetup;
     intentionalLeave = false;
+    try {
+      const configuration = await loadIceServers();
+      rtcIceServers = configuration.iceServers;
+      maxFileSize = configuration.maxFileSize;
+    } catch (error) {
+      console.error("Could not load ICE server configuration:", error);
+      rtcIceServers = defaultIceServers;
+      maxFileSize = defaultMaxFileSize;
+      showToast("تعذر تحميل إعدادات TURN؛ ستُجرَّب الاتصالات المباشرة فقط");
+    }
+    if (setup !== connectionSetup || socket !== roomSocket || !roomSocket.connected) return;
     if (!controlPanel.classList.contains("hidden")) {
       clearPeers();
     }
 
     const muted = localStream.getAudioTracks()[0]?.enabled === false;
     roomSocket.emit("join-room", { roomId, name, roomName, muted }, (result) => {
+      if (setup !== connectionSetup || socket !== roomSocket || !roomSocket.connected) return;
       if (result?.error) {
         formError.textContent = result.error;
         if (controlPanel.classList.contains("hidden")) {
@@ -433,13 +521,14 @@ function connectToRoom(name) {
       localMonitorCleanup?.();
       localMonitorCleanup = monitorAudio(localStream, selfAvatar);
       applyMicrophoneMuteState();
-      fileSharing.attach(roomSocket);
+      fileSharing.attach(roomSocket, rtcIceServers, maxFileSize);
       result.peers.forEach(createPeer);
       updateFileRecipients();
       updateEmptyNote();
     });
   });
   roomSocket.on("disconnect", () => {
+    connectionSetup += 1;
     if (socket === roomSocket && !intentionalLeave && !controlPanel.classList.contains("hidden")) {
       clearPeers();
       fileSharing.cleanup();
@@ -476,23 +565,31 @@ function connectToRoom(name) {
     peer.signalQueue = peer.signalQueue
       .then(async () => {
         if (signal.description) {
-          await peer.connection.setRemoteDescription(signal.description);
+          const offerCollision = signal.description.type === "offer" &&
+            (peer.makingOffer || (peer.connection.signalingState !== "stable" && !peer.isSettingRemoteAnswerPending));
+          peer.ignoreOffer = !peer.polite && offerCollision;
+          if (peer.ignoreOffer) return;
+
+          peer.isSettingRemoteAnswerPending = signal.description.type === "answer";
+          try {
+            await peer.connection.setRemoteDescription(signal.description);
+          } finally {
+            peer.isSettingRemoteAnswerPending = false;
+          }
           if (signal.description.type === "offer") {
-            const answer = await peer.connection.createAnswer();
-            await peer.connection.setLocalDescription(answer);
+            await peer.connection.setLocalDescription();
             roomSocket.emit("signal", { target: from, signal: { description: peer.connection.localDescription } });
           }
+          const candidates = peer.pendingCandidates.splice(0);
+          for (const candidate of candidates) {
+            await peer.connection.addIceCandidate(candidate);
+          }
         } else if (signal.candidate) {
+          if (peer.ignoreOffer) return;
           if (peer.connection.remoteDescription) {
             await peer.connection.addIceCandidate(signal.candidate);
           } else {
             peer.pendingCandidates.push(signal.candidate);
-          }
-        }
-        if (signal.description && peer.pendingCandidates.length) {
-          const candidates = peer.pendingCandidates.splice(0);
-          for (const candidate of candidates) {
-            await peer.connection.addIceCandidate(candidate);
           }
         }
       })
@@ -526,9 +623,7 @@ async function joinWithName(name) {
     connectToRoom(name);
   } catch (error) {
     console.error("Could not access microphone:", error);
-    formError.textContent = error.name === "NotAllowedError"
-      ? "اسمح باستخدام الميكروفون من إعدادات المتصفح ثم حاول مجدداً."
-      : "لم نتمكن من تشغيل الميكروفون. تحقق من توصيله ثم حاول مجدداً.";
+    formError.textContent = microphoneErrorMessage(error);
     joinButton.disabled = false;
     joinButton.querySelector("span").textContent = "انضم للمحادثة";
   }
@@ -548,11 +643,40 @@ function getAudioConstraints(deviceId) {
   return constraints;
 }
 
-function requestMicrophone(deviceId) {
-  if (!navigator.mediaDevices?.getUserMedia) {
-    return Promise.reject(new Error("المتصفح لا يدعم الوصول إلى الميكروفون."));
+function microphoneErrorMessage(error) {
+  switch (error?.name) {
+    case "NotAllowedError":
+    case "PermissionDeniedError":
+      return "لم يُسمح باستخدام الميكروفون. فعّل الإذن من إعدادات الموقع في المتصفح.";
+    case "NotFoundError":
+    case "DevicesNotFoundError":
+      return "لم يتم العثور على ميكروفون. وصّل جهازاً ثم حاول مجدداً.";
+    case "NotReadableError":
+    case "TrackStartError":
+      return "الميكروفون مستخدم أو تعذّر تشغيله. أغلق التطبيقات الأخرى التي تستخدمه.";
+    case "OverconstrainedError":
+      return "تعذّر استخدام إعدادات هذا الميكروفون. اختر جهازاً آخر أو أعد المحاولة.";
+    default:
+      return "تعذّر الوصول إلى الميكروفون. تحقق من توصيله وأذونات المتصفح.";
   }
-  return navigator.mediaDevices.getUserMedia({ audio: getAudioConstraints(deviceId), video: false });
+}
+
+async function requestMicrophone(deviceId) {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    throw new Error("المتصفح لا يدعم الوصول إلى الميكروفون.");
+  }
+  try {
+    return await navigator.mediaDevices.getUserMedia({ audio: getAudioConstraints(deviceId), video: false });
+  } catch (error) {
+    if (error.name !== "OverconstrainedError") throw error;
+    try {
+      const audio = deviceId ? { deviceId: { ideal: deviceId } } : true;
+      return await navigator.mediaDevices.getUserMedia({ audio, video: false });
+    } catch (fallbackError) {
+      console.error("Could not retry microphone access with relaxed constraints:", fallbackError);
+      throw error;
+    }
+  }
 }
 
 function configureMicrophoneFilter(highPass = microphoneHighPass, lowPass = microphoneLowPass) {
@@ -665,6 +789,19 @@ async function loadMicrophoneDevices() {
     showToast("تعذر عرض أجهزة الميكروفون");
   }
 }
+
+navigator.mediaDevices?.addEventListener?.("devicechange", async () => {
+  await loadMicrophoneDevices();
+  if (!microphonePreferences.deviceId || microphoneSelect.value) return;
+  if (!localStream) {
+    microphonePreferences.deviceId = "";
+    localStorage.setItem("sout-device", "");
+    showToast("فُصل الميكروفون المحدد؛ سيُستخدم الجهاز الافتراضي عند الانضمام");
+    return;
+  }
+  microphoneSelect.dispatchEvent(new Event("change"));
+  showToast("فُصل الميكروفون المحدد؛ جارٍ الانتقال إلى الجهاز الافتراضي");
+});
 
 function initializeAudioSettings() {
   voiceBoost.value = String(Math.max(1, Math.min(2.5, microphonePreferences.voiceBoost)));
@@ -797,7 +934,7 @@ microphoneSelect.addEventListener("change", async () => {
     microphonePreferences.deviceId = previousDevice;
     microphoneSelect.value = previousDevice;
     localStorage.setItem("sout-device", previousDevice);
-    showToast("تعذر تغيير الميكروفون؛ تمت إعادة الإعداد السابق");
+    showToast(`${microphoneErrorMessage(error)} تمت إعادة الميكروفون السابق`);
   }
 });
 pushToTalk.addEventListener("change", () => {
@@ -839,6 +976,17 @@ function updateMuteButton(muted) {
     ? '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m3 3 18 18M9 9v3a3 3 0 0 0 5.1 2.1M15 9V6a3 3 0 0 0-5.8-1M19 11a7 7 0 0 1-1 3.6M5 11a7 7 0 0 0 11.9 5M12 18v3m-4 0h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
     : '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z" stroke="currentColor" stroke-width="1.8"/><path d="M19 11a7 7 0 0 1-14 0m7 7v3m-4 0h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
 }
+
+enableAudioButton.addEventListener("click", async () => {
+  try {
+    if (audioContext?.state === "suspended") await audioContext.resume();
+    await Promise.all(Array.from(peers.values(), (peer) => peer.audio.play()));
+    enableAudioButton.classList.add("hidden");
+  } catch (error) {
+    console.error("Could not enable peer audio playback:", error);
+    showToast("تعذر تفعيل الصوت. تحقق من إعدادات الصوت في المتصفح.");
+  }
+});
 
 muteButton.addEventListener("click", () => {
   if (!localStream?.getAudioTracks()[0]) return;

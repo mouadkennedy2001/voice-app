@@ -1,5 +1,6 @@
 (() => {
-  const MAX_FILE_SIZE = 8 * 1024 * 1024;
+  const DEFAULT_MAX_FILE_SIZE = 8 * 1024 * 1024;
+  let maxFileSize = DEFAULT_MAX_FILE_SIZE;
   const CHUNK_SIZE = 64 * 1024;
   const BUFFER_LIMIT = 256 * 1024;
   const BLOCKED_EXTENSIONS = new Set([
@@ -20,21 +21,23 @@
   const incomingQueue = [];
   let activeRequest;
   let socket;
+  let iceServers = [{ urls: "stun:stun.l.google.com:19302" }];
 
   function safeFileName(name) {
     return name.replace(/[\\/\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, "_").slice(0, 180);
   }
 
   function validFile(file) {
-    if (!file || !(file instanceof File) || file.size < 0 || file.size > MAX_FILE_SIZE) return false;
+    if (!file || !(file instanceof File) || file.size < 0 || file.size > maxFileSize) return false;
     if (/[\\/\u0000-\u001f\u007f]/.test(file.name) || /[. ]$/.test(file.name)) return false;
     const extension = file.name.split(".").pop()?.trim().replace(/\.+$/, "").toLowerCase() || "";
     return !BLOCKED_EXTENSIONS.has(extension) && !/[\\/\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/.test(file.name);
   }
 
   function formatSize(bytes) {
+    if (bytes < 1024) return `${bytes} B`;
     return bytes < 1024 * 1024
-      ? `${Math.max(1, Math.round(bytes / 1024))} KB`
+      ? `${Math.round(bytes / 1024)} KB`
       : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
@@ -245,7 +248,7 @@
               message.mime !== (state.file.type || "") ||
               !Number.isSafeInteger(message.size) ||
               message.size < 0 ||
-              message.size > MAX_FILE_SIZE ||
+              message.size > maxFileSize ||
               typeof message.digest !== "string" ||
               !/^[0-9a-f]{64}$/.test(message.digest)
             ) throw new Error("بيانات الملف لا تطابق الطلب");
@@ -264,7 +267,7 @@
         if (!(event.data instanceof ArrayBuffer) || event.data.byteLength > CHUNK_SIZE || !state.expectedDigest) {
           throw new Error("بيانات الملف غير متوقعة");
         }
-        if (state.bytes + event.data.byteLength > state.expectedSize || state.bytes + event.data.byteLength > MAX_FILE_SIZE) {
+        if (state.bytes + event.data.byteLength > state.expectedSize || state.bytes + event.data.byteLength > maxFileSize) {
           throw new Error("تجاوز الملف الحجم المتوقع");
         }
         state.chunks.push(event.data);
@@ -299,7 +302,7 @@
       if (state.direction === "send" && signal.description?.type === "answer") {
         await state.pc.setRemoteDescription(signal.description);
       } else if (state.direction === "receive" && signal.description?.type === "offer" && !state.pc) {
-        state.pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+        state.pc = new RTCPeerConnection({ iceServers });
         state.pc.ondatachannel = (event) => setupReceiverChannel(state, event.channel);
         state.pc.onicecandidate = (event) => {
           if (event.candidate) sendSignal(state, state.sender, { candidate: event.candidate.toJSON() });
@@ -331,7 +334,7 @@
 
   async function beginSender(state, target) {
     state.target = target;
-    state.pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+    state.pc = new RTCPeerConnection({ iceServers });
     state.channel = state.pc.createDataChannel("sout-file", { ordered: true });
     state.pc.onicecandidate = (event) => {
       if (event.candidate) sendSignal(state, target, { candidate: event.candidate.toJSON() });
@@ -384,9 +387,7 @@
     declineButton.click();
   });
 
-  fileInput.addEventListener("change", async () => {
-    const file = fileInput.files?.[0];
-    fileInput.value = "";
+  function startFileTransfer(file) {
     if (!file) return;
     if (!validFile(file)) {
       window.showToast?.("الملف غير مدعوم أو يتجاوز الحد الأقصى 8 MB.");
@@ -410,32 +411,25 @@
       if (result?.error) failTransfer(state, result.error);
     });
 
-    filePanel.addEventListener("dragover", (event) => {
-      event.preventDefault();
-      filePanel.classList.add("is-dragging");
-    });
-    filePanel.addEventListener("dragleave", (event) => {
-      if (!filePanel.contains(event.relatedTarget)) filePanel.classList.remove("is-dragging");
-    });
-    filePanel.addEventListener("drop", (event) => {
-      event.preventDefault();
-      filePanel.classList.remove("is-dragging");
-      const file = event.dataTransfer?.files?.[0];
-      if (!file) return;
-      if (!validFile(file)) {
-        window.showToast?.("الملف غير مدعوم أو يتجاوز الحد الأقصى 8 MB.");
-        return;
-      }
-      if (!fileInput.files || typeof DataTransfer === "undefined") {
-        window.showToast?.("اختر الملف باستخدام زر اختيار ملف.");
-        return;
-      }
-      const transfer = new DataTransfer();
-      transfer.items.add(file);
-      fileInput.files = transfer.files;
-      fileInput.dispatchEvent(new Event("change"));
-    });
     state.readerTimer = setTimeout(() => failTransfer(state, "لم يصل رد المستلم خلال دقيقة"), 60_000);
+  }
+
+  fileInput.addEventListener("change", () => {
+    const file = fileInput.files?.[0];
+    fileInput.value = "";
+    startFileTransfer(file);
+  });
+  filePanel.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    filePanel.classList.add("is-dragging");
+  });
+  filePanel.addEventListener("dragleave", (event) => {
+    if (!filePanel.contains(event.relatedTarget)) filePanel.classList.remove("is-dragging");
+  });
+  filePanel.addEventListener("drop", (event) => {
+    event.preventDefault();
+    filePanel.classList.remove("is-dragging");
+    startFileTransfer(event.dataTransfer?.files?.[0]);
   });
 
   function updatePeers(peerList) {
@@ -454,14 +448,21 @@
     if (peerList.some((peer) => peer.id === previous)) recipientSelect.value = previous;
   }
 
-  function attach(nextSocket) {
+  function attach(nextSocket, nextIceServers = iceServers, nextMaxFileSize = maxFileSize) {
     if (socket === nextSocket) return;
     cleanup();
     socket = nextSocket;
+    iceServers = nextIceServers;
+    if (!Number.isSafeInteger(nextMaxFileSize) || nextMaxFileSize < 1 || nextMaxFileSize > DEFAULT_MAX_FILE_SIZE) {
+      throw new Error("The server returned an invalid maximum file size.");
+    }
+    maxFileSize = nextMaxFileSize;
+    document.getElementById("file-security-note").textContent =
+      `بموافقة المستلم · حتى ${formatSize(maxFileSize)}`;
     if (!socket) return;
     socket.on("file-request", (request) => {
       if (transfers.has(request.requestId) || activeRequest?.requestId === request.requestId) return;
-      if (!request.file || !Number.isSafeInteger(request.file.size) || request.file.size < 0 || request.file.size > MAX_FILE_SIZE) {
+      if (!request.file || !Number.isSafeInteger(request.file.size) || request.file.size < 0 || request.file.size > maxFileSize) {
         socket.emit("file-response", { requestId: request.requestId, accepted: false });
         return;
       }
@@ -522,5 +523,5 @@
     socket = null;
   }
 
-  window.fileSharing = { attach, updatePeers, cleanup, maxFileSize: MAX_FILE_SIZE };
+  window.fileSharing = { attach, updatePeers, cleanup, get maxFileSize() { return maxFileSize; } };
 })();
