@@ -1,163 +1,361 @@
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-theme="dark">
   <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#c4c3b6">
-    <meta name="description" content="مساحة صوتية هادئة لتكونوا أقرب، أينما كنتم.">
-    <title>صوت — مساحة تجمعكم</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0f1115">
+    <meta name="description" content="صوت — غرف محادثة صوتية مباشرة، دردشة، ومستودع ملفات P2P.">
+    <title>صوت — غرف المحادثة الصوتية</title>
     <link rel="stylesheet" href="/styles.css">
     <script src="/socket.io/socket.io.js" defer></script>
     <script src="/file-sharing.js" defer></script>
     <script src="/app.js" defer></script>
   </head>
   <body>
-    <main class="app-shell">
-      <header class="topbar">
+    <svg class="svg-sprite" aria-hidden="true" focusable="false">
+      <symbol id="i-wave" viewBox="0 0 24 24"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4" /></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2.5" /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" /></symbol>
+      <symbol id="i-folder" viewBox="0 0 24 24"><path d="M4 20h16a1 1 0 0 0 1-1V9a1 1 0 0 0-1-1h-7.5l-2-2H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1Z" /></symbol>
+      <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-12.7 7.4L3 21l2.1-5.3A8.5 8.5 0 1 1 21 11.5Z" /><circle cx="8.4" cy="11.8" r="1" fill="currentColor" stroke="none" /><circle cx="12" cy="11.8" r="1" fill="currentColor" stroke="none" /><circle cx="15.6" cy="11.8" r="1" fill="currentColor" stroke="none" /></symbol>
+      <symbol id="i-archive" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1.5" /><path d="M5 8v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8M9.5 12h5" /></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="7.5" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16.5 4.2a3.5 3.5 0 0 1 0 6.6M18.5 14.4A6.5 6.5 0 0 1 22 20" /></symbol>
+      <symbol id="i-sound" viewBox="0 0 24 24"><path d="M11 5 6.5 8.5H3v7h3.5L11 19V5Z" /><path d="M15 9.5a4 4 0 0 1 0 5M18 7a8 8 0 0 1 0 10" /></symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z" /></symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /><path d="M12 2.5v2M12 19.5v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2.5 12h2M19.5 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" /></symbol>
+      <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="2.5" width="6" height="11.5" rx="3" /><path d="M5 10.5v1a7 7 0 0 0 14 0v-1M12 18.5V22M8.5 22h7" /></symbol>
+      <symbol id="i-mic-off" viewBox="0 0 24 24"><path d="m3 3 18 18" /><path d="M9 9v3a3 3 0 0 0 5.1 2.1M15 9.3V5.5a3 3 0 0 0-5.9-.7M5 10.5v1a7 7 0 0 0 11.4 5.4M19 10.5v1a7 7 0 0 1-.1 1.2M12 18.5V22M8.5 22h7" /></symbol>
+      <symbol id="i-hand" viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 0 0-4 0v5M14 10V4a2 2 0 0 0-4 0v6M10 10.5V6a2 2 0 0 0-4 0v8" /><path d="M18 8a2 2 0 0 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-6-2.3l-3.6-3.6a2 2 0 0 1 2.8-2.8L7 15" /></symbol>
+      <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h8m4 0h4M4 12h2m4 0h10M4 18h10m4 0h2" /><circle cx="14" cy="6" r="2" /><circle cx="8" cy="12" r="2" /><circle cx="16" cy="18" r="2" /></symbol>
+      <symbol id="i-screen" viewBox="0 0 24 24"><rect x="2" y="3.5" width="20" height="13.5" rx="2.5" /><path d="M8 21h8M12 17v4" /></symbol>
+      <symbol id="i-screen-off" viewBox="0 0 24 24"><rect x="2" y="3.5" width="20" height="13.5" rx="2.5" /><path d="M8 21h8M12 17v4M3.5 2.5l17 19" /></symbol>
+      <symbol id="i-paperclip" viewBox="0 0 24 24"><path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l8.6-8.6A4 4 0 1 1 18 8.8l-8.6 8.6a2 2 0 0 1-2.8-2.8l8.5-8.5" /></symbol>
+      <symbol id="i-phone-off" viewBox="0 0 24 24"><path d="M10.7 13.3a16 16 0 0 0 3.4 2.6l1.3-1.3a2 2 0 0 1 2.1-.4 12.8 12.8 0 0 0 2.8.7 2 2 0 0 1 1.7 2v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.4 19.4 0 0 1-3.3-2.7m-2.7-3.3A19.8 19.8 0 0 1 2 5.1 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7 12.8 12.8 0 0 0 .7 2.8 2 2 0 0 1-.5 2.1L8.1 9.9" /><path d="M22 2 2 22" /></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12" /></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.2c0 4.5 3 8.4 7.5 9.8 4.5-1.4 7.5-5.3 7.5-9.8V6L12 3Z" /><path d="m9 12 2 2 4-4" /></symbol>
+      <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16.5V3.5m0 0L7 8.5m5-5 5 5M4 15.5V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3.5" /></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3.5v13m0 0 5-5m-5 5-5-5M4 18.5V20a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1.5" /></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20.5 12a8.5 8.5 0 1 1-2.6-6.1M21 4v5.5h-5.5" /></symbol>
+      <symbol id="i-send" viewBox="0 0 24 24"><path d="m21.5 2.5-9.8 9.8M21.5 2.5 15 21l-3.3-8.7L3 9Z" /></symbol>
+      <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5" /><path d="M4.5 20a7.5 7.5 0 0 1 15 0" /></symbol>
+      <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z" /><path d="M14 3v6h6" /></symbol>
+      <symbol id="i-broadcast" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2" /><path d="M8.5 8.5a5 5 0 0 0 0 7m7-7a5 5 0 0 1 0 7M5.5 5.5a9 9 0 0 0 0 13m13-13a9 9 0 0 1 0 13" /></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2.5" /><path d="M8 10V7a4 4 0 1 1 8 0v3" /></symbol>
+      <symbol id="i-expand" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" /></symbol>
+      <symbol id="i-collapse" viewBox="0 0 24 24"><path d="M8 3v3a2 2 0 0 1-2 2H3M16 3v3a2 2 0 0 0 2 2h3M8 21v-3a2 2 0 0 0-2-2H3M16 21v-3a2 2 0 0 1 2-2h3" /></symbol>
+      <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></symbol>
+      <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M10.7 5.6A10.9 10.9 0 0 1 12 5.5c6.5 0 10 6.5 10 6.5a18 18 0 0 1-2.2 3.1M6.6 6.6A18 18 0 0 0 2 12s3.5 6.5 10 6.5a11 11 0 0 0 5.4-1.4" /><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2M2 2l20 20" /></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5Z" /></symbol>
+    </svg>
+
+    <div class="toast-container" id="toast-container" aria-live="polite"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <header class="topbar">
+      <div class="brand-group">
         <a class="brand" href="/" aria-label="صوت، الصفحة الرئيسية">
-          <span class="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5v17M7.5 7v10M3 9.5v5M16.5 7v10M21 9.5v5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-          </span>
+          <span class="brand-mark" aria-hidden="true"><svg><use href="#i-wave"></use></svg></span>
           <span>صوت</span>
         </a>
-        <div class="topbar-actions">
-          <span class="secure-label"><span class="secure-dot"></span> اتصال صوتي مباشر</span>
-          <button class="sound-toggle icon-button" id="sound-toggle" type="button" aria-label="إيقاف أصوات التنبيهات" title="أصوات التنبيهات مفعّلة">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Zm4 4a4 4 0 0 1 0 6m3-9a8 8 0 0 1 0 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="brand-separator" aria-hidden="true">/</span>
+        <div class="room-chip" title="القناة الحالية">
+          <span class="status-dot"></span>
+          <span id="channel-title">قناة النقاش</span>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <div class="stat-chip connection-chip">
+          <svg aria-hidden="true"><use href="#i-shield"></use></svg>
+          <span id="connection-label">مساحة خاصة</span>
+        </div>
+        <div class="stat-chip">
+          <svg aria-hidden="true"><use href="#i-users"></use></svg>
+          <span id="participants-count">1 / 8</span>
+        </div>
+        <button class="icon-button" id="sound-toggle" type="button" aria-label="إيقاف أصوات التنبيهات" title="أصوات التنبيهات مفعّلة">
+          <svg aria-hidden="true"><use href="#i-sound"></use></svg>
+        </button>
+        <button class="icon-button" id="theme-toggle" type="button" aria-label="تبديل المظهر" title="تبديل المظهر">
+          <svg class="sun-icon" aria-hidden="true"><use href="#i-sun"></use></svg>
+          <svg class="moon-icon" aria-hidden="true"><use href="#i-moon"></use></svg>
+        </button>
+        <button class="icon-button" id="repo-top-button" type="button" aria-label="مستودع القنوات" title="مستودع القنوات">
+          <svg aria-hidden="true"><use href="#i-archive"></use></svg>
+        </button>
+        <button class="profile-button" id="profile-button" type="button" aria-label="الملف الشخصي وتسجيل الدخول">
+          <span class="profile-avatar" id="header-profile-avatar" aria-hidden="true">؟</span>
+          <span id="profile-button-label">حساب</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <section class="action-bar">
+        <div class="action-info">
+          <span class="action-icon" aria-hidden="true"><svg><use href="#i-broadcast"></use></svg></span>
+          <div>
+            <h2>اتصال محلي P2P عبر WebRTC</h2>
+            <p>الصوت والملفات تنتقل مباشرة بين المشاركين دون تخزين محتواها على الخادم.</p>
+          </div>
+        </div>
+        <div class="action-buttons">
+          <button class="btn btn-accent" id="copy-button" type="button">
+            <svg aria-hidden="true"><use href="#i-copy"></use></svg>
+            <span id="copy-label">دعوة مشارك</span>
           </button>
-          <button class="theme-toggle icon-button" id="theme-toggle" type="button" aria-label="تبديل المظهر" title="تبديل المظهر">
-            <svg class="sun-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            <svg class="moon-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20.2 15.1A8.5 8.5 0 0 1 8.9 3.8 8.5 8.5 0 1 0 20.2 15.1Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <button class="btn btn-ghost" id="chat-control" type="button">
+            <svg aria-hidden="true"><use href="#i-chat"></use></svg>
+            <span>الدردشة</span>
+            <span class="badge hidden" id="chat-badge">0</span>
+          </button>
+          <button class="btn btn-ghost" id="repo-control" type="button">
+            <svg aria-hidden="true"><use href="#i-archive"></use></svg>
+            <span>المستودع</span>
+          </button>
+          <button class="btn btn-ghost" id="files-control" type="button" aria-controls="file-panel">
+            <svg aria-hidden="true"><use href="#i-paperclip"></use></svg>
+            <span>الملفات</span>
           </button>
         </div>
-      </header>
+      </section>
 
-      <section class="room-card" aria-labelledby="room-heading">
-        <div class="ambient ambient-one"></div>
-        <div class="ambient ambient-two"></div>
-
-        <div class="room-heading">
-          <div class="live-pill"><span class="live-dot"></span><span id="connection-label">مساحة خاصة</span></div>
-          <h1 id="room-heading">الصوت يجمعنا.</h1>
-          <p class="channel-title hidden" id="channel-title"></p>
-          <p class="room-subtitle">مساحة هادئة، وحديث أقرب. ادعُ من تحب وابدأوا.</p>
-          <button class="secondary-button hidden" id="enable-audio-button" type="button">اضغط لتفعيل الصوت</button>
+      <section class="stage-card">
+        <div class="stage-heading">
+          <div>
+            <span class="section-kicker">المشاركون</span>
+            <h2>من في القناة الآن</h2>
+          </div>
+          <span class="stage-note"><span class="status-dot"></span> الصوت مباشر بين الأجهزة</span>
         </div>
 
         <div class="people-stage" id="people-stage" aria-live="polite">
-          <div class="stage-orbit orbit-outer"></div>
-          <div class="stage-orbit orbit-inner"></div>
-          <div class="person-card self-person" id="self-person">
-            <div class="avatar self-avatar" id="self-avatar"><span id="self-initial">؟</span><span class="voice-rings" aria-hidden="true"><i></i><i></i><i></i></span></div>
-            <span class="person-name" id="self-name">أنت</span>
-            <span class="person-caption" id="self-caption">بانتظارك</span>
-          </div>
-          <div class="empty-note" id="empty-note">
-            <span class="empty-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z" stroke="currentColor" stroke-width="1.7"/><path d="M19 11a7 7 0 0 1-14 0m7 7v3m-4 0h8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-            </span>
-            <span>أصوات أصدقائك ستظهر هنا</span>
-          </div>
+          <article class="participant-card self-person" id="self-person">
+            <div class="participant-top">
+              <span class="role-badge">أنت</span>
+              <span class="status-pill status-speaking" id="self-status">جاهز</span>
+            </div>
+            <div class="participant-center">
+              <div class="avatar self-avatar" id="self-avatar">
+                <span id="self-initial">؟</span>
+                <span class="voice-rings" aria-hidden="true"><i></i><i></i><i></i></span>
+              </div>
+              <h3 class="participant-name" id="self-name">أنت</h3>
+              <p class="participant-caption" id="self-caption">بانتظارك</p>
+            </div>
+            <div class="participant-bottom">
+              <span>ميكروفونك</span>
+              <svg class="ok-icon" aria-hidden="true"><use href="#i-check"></use></svg>
+            </div>
+          </article>
+
           <div class="participants" id="participants"></div>
+
+          <div class="empty-note" id="empty-note">
+            <span class="empty-icon" aria-hidden="true"><svg><use href="#i-mic"></use></svg></span>
+            <span>أصوات أصدقائك ستظهر هنا. شارك رابط الدعوة للبدء.</span>
+          </div>
         </div>
 
         <section class="screen-panel hidden" id="screen-panel" aria-label="الشاشات المشتركة" aria-live="polite">
+          <div class="screen-panel-head">
+            <span class="screen-live"><span class="live-dot" aria-hidden="true"></span> بث الشاشة</span>
+            <span class="screen-panel-hint" id="screen-panel-hint">يمكنك إيقاف مشاهدة أي شاشة والعودة إليها لاحقاً</span>
+          </div>
+          <div class="screen-streams" id="screen-streams"></div>
           <div class="screen-grid" id="screen-grid"></div>
         </section>
 
-        <div class="join-panel" id="join-panel">
-          <label class="name-label" for="name-input">كيف نناديك؟</label>
-          <div class="join-row">
-            <div class="input-wrap">
-              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.7"/><path d="M5 20c.5-3.2 3.3-5.3 7-5.3s6.5 2.1 7 5.3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-              <input id="name-input" type="text" maxlength="32" autocomplete="name" placeholder="اكتب اسمك" aria-label="اسمك">
-            </div>
-            <button class="join-button" id="join-button" type="button">
-              <span>انضم للمحادثة</span>
-              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
+        <button class="btn btn-accent hidden enable-audio" id="enable-audio-button" type="button">اضغط لتفعيل الصوت</button>
+      </section>
+
+      <section class="join-card" id="join-panel">
+        <div class="join-copy">
+          <span class="section-kicker">ابدأ الآن</span>
+          <h2>كيف نناديك؟</h2>
+          <p>اكتب اسمك ثم انضم. يمكنك أيضاً إنشاء قناة مستقلة ومشاركة رابطها.</p>
+        </div>
+        <div class="join-controls">
+          <label class="visually-hidden" for="name-input">اسمك</label>
+          <div class="input-wrap">
+            <svg aria-hidden="true"><use href="#i-user"></use></svg>
+            <input id="name-input" type="text" maxlength="32" autocomplete="name" placeholder="اكتب اسمك">
           </div>
-          <button class="secondary-button create-channel-button" id="create-channel-button" type="button">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <button class="btn btn-accent join-button" id="join-button" type="button">
+            <span>انضم للمحادثة</span>
+            <svg aria-hidden="true"><use href="#i-mic"></use></svg>
+          </button>
+        </div>
+        <div class="join-secondary">
+          <button class="btn btn-ghost" id="create-channel-button" type="button">
+            <svg aria-hidden="true"><use href="#i-plus"></use></svg>
             <span>إنشاء قناة جديدة</span>
           </button>
-          <button class="secondary-button prejoin-audio-button" id="prejoin-audio-button" type="button">إعدادات الميكروفون</button>
-          <p class="form-error" id="form-error" role="alert"></p>
-          <p class="privacy-note"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 10V7a4 4 0 1 1 8 0v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg> صوتك ينتقل مباشرةً بين الأجهزة، ولا يتم تسجيله.</p>
+          <button class="btn btn-ghost" id="prejoin-audio-button" type="button">
+            <svg aria-hidden="true"><use href="#i-sliders"></use></svg>
+            <span>إعدادات الميكروفون</span>
+          </button>
         </div>
+        <p class="form-error" id="form-error" role="alert"></p>
+        <p class="privacy-note"><svg aria-hidden="true"><use href="#i-lock"></use></svg> صوتك ينتقل مباشرةً بين الأجهزة، ولا يتم تسجيله.</p>
+      </section>
 
-        <div class="control-panel hidden" id="control-panel">
-          <div class="control-actions">
-            <button class="control-button audio-settings-button" id="audio-settings-button" type="button">
-              <span class="control-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z" stroke="currentColor" stroke-width="1.7"/><path d="m19.4 15 .1.1a1.7 1.7 0 1 1-2.4 2.4l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a1.7 1.7 0 1 1-3.4 0v-.2a1.7 1.7 0 0 0-2.9-1.2l-.1.1a1.7 1.7 0 1 1-2.4-2.4l.1-.1a1.7 1.7 0 0 0-1.2-2.9H4a1.7 1.7 0 1 1 0-3.4h.2a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a1.7 1.7 0 1 1 2.4-2.4l.1.1a1.7 1.7 0 0 0 2.9-1.2V2a1.7 1.7 0 1 1 3.4 0v.2a1.7 1.7 0 0 0 2.9 1.2l.1-.1a1.7 1.7 0 1 1 2.4 2.4l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.2a1.7 1.7 0 1 1 0 3.4h-.2a1.7 1.7 0 0 0-1.2 2.9Z" stroke="currentColor" stroke-width="1.5"/></svg></span>
-              <span>الصوت</span>
+      <section class="control-panel hidden" id="control-panel" aria-label="أدوات القناة">
+        <div class="control-inner">
+          <div class="control-group">
+            <button class="ctrl ctrl-primary" id="mute-button" type="button" aria-label="كتم الميكروفون">
+              <span class="ctrl-icon" id="mute-icon"><svg aria-hidden="true"><use href="#i-mic"></use></svg></span>
+              <span id="mute-label">كتم الصوت</span>
             </button>
-            <button class="control-button new-channel-control" id="new-channel-control" type="button">
-              <span class="control-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
-              <span>قناة جديدة</span>
+            <button class="ctrl hidden" id="ptt-button" type="button" aria-label="اضغط مطولاً للتحدث" aria-pressed="false">
+              <svg aria-hidden="true"><use href="#i-hand"></use></svg>
+              <span>اضغط للتحدث</span>
             </button>
-            <button class="control-button mute-button" id="mute-button" type="button" aria-label="كتم الميكروفون">
-              <span class="control-icon" id="mute-icon"></span><span id="mute-label">كتم الصوت</span>
+            <button class="ctrl" id="hand-button" type="button" aria-label="رفع اليد" aria-pressed="false">
+              <svg aria-hidden="true"><use href="#i-hand"></use></svg>
+              <span id="hand-label">رفع اليد</span>
             </button>
-            <button class="control-button screen-share-button" id="screen-share-button" type="button" aria-label="مشاركة الشاشة">
-              <span class="control-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 21h8m-4-4v4m-3-9 2-2 2 2m-2-2v5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-              <span id="screen-share-label">مشاركة الشاشة</span>
+          </div>
+
+          <div class="control-group">
+            <button class="ctrl icon-only" id="audio-settings-button" type="button" title="إعدادات الصوت" aria-label="إعدادات الصوت">
+              <svg aria-hidden="true"><use href="#i-sliders"></use></svg>
             </button>
-            <button class="control-button invite-button" id="copy-button" type="button">
-              <span class="control-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.1 0l3-3A5 5 0 0 0 13 2.9l-1.7 1.7m2.7 6.4a5 5 0 0 0-7.1 0l-3 3A5 5 0 0 0 11 21.1l1.7-1.7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-              <span id="copy-label">نسخ رابط الدعوة</span>
+            <button class="ctrl icon-only" id="screen-share-button" type="button" title="مشاركة الشاشة" aria-label="مشاركة الشاشة">
+              <svg aria-hidden="true"><use href="#i-screen"></use></svg>
+              <span class="visually-hidden" id="screen-share-label">مشاركة الشاشة</span>
             </button>
-            <button class="control-button leave-button" id="leave-button" type="button">
-              <span class="control-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 17l5-5-5-5m5 5H3m9-9h6a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <button class="ctrl icon-only" id="chat-control-footer" type="button" title="الدردشة" aria-label="فتح الدردشة">
+              <svg aria-hidden="true"><use href="#i-chat"></use></svg>
+              <span class="badge hidden" id="chat-badge-footer">0</span>
+            </button>
+            <button class="ctrl icon-only" id="files-control-footer" type="button" title="الملفات" aria-label="فتح الملفات">
+              <svg aria-hidden="true"><use href="#i-paperclip"></use></svg>
+            </button>
+            <button class="ctrl icon-only" id="repo-control-footer" type="button" title="مستودع القنوات" aria-label="فتح المستودع">
+              <svg aria-hidden="true"><use href="#i-archive"></use></svg>
+            </button>
+          </div>
+
+          <div class="control-group">
+            <button class="ctrl ctrl-danger" id="leave-button" type="button">
+              <svg aria-hidden="true"><use href="#i-phone-off"></use></svg>
               <span>مغادرة</span>
             </button>
           </div>
-          <p class="control-hint" id="control-hint">أرسل الرابط لمن تريد أن ينضم إليك</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- ================= DRAWER: FILES ================= -->
+    <div class="drawer" id="drawer-files" aria-hidden="true">
+      <div class="drawer-backdrop" data-close-drawer="files"></div>
+      <aside class="drawer-panel" id="file-panel" aria-labelledby="file-heading">
+        <div class="drawer-heading">
+          <div>
+            <span class="section-kicker">مباشرةً بين الأجهزة</span>
+            <h2 id="file-heading">نقل الملفات P2P</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-drawer="files" aria-label="إغلاق">
+            <svg aria-hidden="true"><use href="#i-x"></use></svg>
+          </button>
+        </div>
+        <p class="drawer-note"><svg aria-hidden="true"><use href="#i-shield"></use></svg> <span id="file-security-note">بموافقة المستلم · حتى 12 GB</span></p>
+
+        <div class="file-share-row">
+          <label class="select-wrap">
+            <span class="visually-hidden">اختر مستلماً</span>
+            <select id="file-recipient" required aria-label="اختر مستلماً"></select>
+          </label>
+          <label class="file-pick-button" for="file-input">
+            <svg aria-hidden="true"><use href="#i-upload"></use></svg>
+            <span>اختيار ملف</span>
+          </label>
+          <input id="file-input" class="visually-hidden" type="file">
+        </div>
+        <p class="file-help">لا يبدأ الإرسال إلا بعد قبول الطرف الآخر. لا تُرفع الملفات إلى الخادم. يمكنك أيضاً سحب ملف وإفلاته هنا.</p>
+
+        <div class="transfer-list" id="transfer-list" aria-live="polite"></div>
+        <div class="download-list" id="download-list" aria-live="polite"></div>
+      </aside>
+    </div>
+
+    <!-- ================= DRAWER: CHAT ================= -->
+    <div class="drawer" id="drawer-chat" aria-hidden="true">
+      <div class="drawer-backdrop" data-close-drawer="chat"></div>
+      <aside class="drawer-panel chat-panel" aria-labelledby="chat-heading">
+        <div class="drawer-heading">
+          <div>
+            <span class="section-kicker">داخل القناة</span>
+            <h2 id="chat-heading">الدردشة النصية</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-drawer="chat" aria-label="إغلاق">
+            <svg aria-hidden="true"><use href="#i-x"></use></svg>
+          </button>
+        </div>
+        <p class="drawer-note"><svg aria-hidden="true"><use href="#i-lock"></use></svg> الرسائل تمر عبر الخادم مؤقتاً ولا تُحفظ بعد مغادرة آخر مشارك.</p>
+        <div class="chat-messages" id="chat-messages" aria-live="polite"></div>
+        <p class="typing-note" id="typing-note" aria-live="polite"></p>
+        <form class="chat-form" id="chat-form">
+          <label class="visually-hidden" for="chat-input">رسالتك</label>
+          <input id="chat-input" type="text" maxlength="800" autocomplete="off" placeholder="اكتب رسالة…">
+          <button class="btn btn-accent" type="submit" aria-label="إرسال">
+            <svg aria-hidden="true"><use href="#i-send"></use></svg>
+          </button>
+        </form>
+      </aside>
+    </div>
+
+    <!-- ================= DRAWER: REPOSITORY ================= -->
+    <div class="drawer" id="drawer-repo" aria-hidden="true">
+      <div class="drawer-backdrop" data-close-drawer="repo"></div>
+      <aside class="drawer-panel repo-panel" aria-labelledby="repo-heading">
+        <div class="drawer-heading">
+          <div>
+            <span class="section-kicker">P2P فقط</span>
+            <h2 id="repo-heading">مستودع القنوات والملفات</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-drawer="repo" aria-label="إغلاق">
+            <svg aria-hidden="true"><use href="#i-x"></use></svg>
+          </button>
+        </div>
+        <p class="drawer-note"><svg aria-hidden="true"><use href="#i-shield"></use></svg> الخادم يحفظ أسماء الملفات وبياناتها فقط. البايتات تُنقل P2P، ولا يمكن التنزيل إلا إذا كان صاحب الملف متصلاً ووافق على الطلب.</p>
+
+        <div class="repo-actions">
+          <label class="btn btn-accent" for="repo-file-input">
+            <svg aria-hidden="true"><use href="#i-plus"></use></svg>
+            <span>إضافة ملف للمستودع</span>
+          </label>
+          <input id="repo-file-input" class="visually-hidden" type="file">
+          <button class="btn btn-ghost" id="repo-refresh" type="button">
+            <svg aria-hidden="true"><use href="#i-refresh"></use></svg>
+            <span>تحديث</span>
+          </button>
         </div>
 
-        <section class="file-panel hidden" id="file-panel" aria-labelledby="file-heading">
-          <div class="file-panel-heading">
-            <div>
-              <span class="section-kicker">مباشرةً بين الأجهزة</span>
-              <h2 id="file-heading">مشاركة الملفات</h2>
-            </div>
-            <span class="file-security-note" id="file-security-note">بموافقة المستلم · حتى 8 MB</span>
-          </div>
-          <div class="file-share-row">
-            <label class="select-wrap">
-              <span class="visually-hidden">اختر مستلماً</span>
-              <select id="file-recipient" required aria-label="اختر مستلماً"></select>
-            </label>
-            <label class="file-pick-button" for="file-input">اختيار ملف</label>
-            <input id="file-input" class="visually-hidden" type="file">
-          </div>
-          <p class="file-help">لا يبدأ الإرسال إلا بعد قبول الطرف الآخر. لا تُرفع الملفات إلى الخادم.</p>
-          <div class="transfer-list" id="transfer-list" aria-live="polite"></div>
-          <div class="download-list" id="download-list" aria-live="polite"></div>
-        </section>
-      </section>
+        <div class="repo-tabs" role="tablist" aria-label="أقسام المستودع">
+          <button class="repo-tab is-active" id="repo-tab-files" type="button" role="tab" aria-selected="true">ملفات القناة</button>
+          <button class="repo-tab" id="repo-tab-channels" type="button" role="tab" aria-selected="false">القنوات</button>
+        </div>
 
-      <footer class="footer">
-        <span>لحظات حقيقية، بلا ضجيج.</span>
-        <span class="footer-separator">·</span>
-        <span>مصمّم للمحادثات التي تهمّك</span>
-      </footer>
-    </main>
-    <dialog class="channel-dialog" id="channel-dialog" aria-labelledby="dialog-title">
-      <form id="channel-form">
-        <button class="dialog-close" id="dialog-close" type="button" aria-label="إغلاق">×</button>
-        <span class="dialog-kicker">مساحتك، بطريقتك</span>
-        <h2 id="dialog-title">أنشئ قناة صوتية</h2>
-        <p>اختر اسماً، ثم شارك رابط القناة مع أصدقائك.</p>
-        <label class="name-label" for="channel-input">اسم القناة</label>
-        <input class="channel-input" id="channel-input" type="text" maxlength="48" placeholder="مثلاً: جلسة المساء" required>
-        <p class="form-error" id="channel-error" role="alert"></p>
-        <button class="join-button dialog-submit" type="submit"><span>إنشاء القناة</span></button>
-      </form>
-    </dialog>
-    <dialog class="channel-dialog audio-dialog" id="audio-dialog" aria-labelledby="audio-dialog-title">
+        <div class="repo-view" id="repo-files-view">
+          <p class="repo-status" id="repo-files-status"></p>
+          <div class="repo-list" id="repo-files" aria-live="polite"></div>
+        </div>
+        <div class="repo-view hidden" id="repo-channels-view">
+          <p class="repo-status" id="repo-channels-status"></p>
+          <div class="repo-list" id="repo-channels" aria-live="polite"></div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- ================= DIALOG: AUDIO ================= -->
+    <dialog class="modal audio-dialog" id="audio-dialog" aria-labelledby="audio-dialog-title">
       <form method="dialog" id="audio-settings-form">
-        <button class="dialog-close" id="audio-dialog-close" type="button" aria-label="إغلاق">×</button>
+        <button class="dialog-close" id="audio-dialog-close" type="button" aria-label="إغلاق">
+          <svg aria-hidden="true"><use href="#i-x"></use></svg>
+        </button>
         <span class="dialog-kicker">ضبط يناسبك</span>
         <h2 id="audio-dialog-title">إعدادات الصوت</h2>
         <p>تختلف معالجة الصوت حسب دعم المتصفح والميكروفون.</p>
@@ -173,17 +371,93 @@
         <p class="audio-note">الفلتر يخفف الترددات المنخفضة والعالية غير المرغوبة. يختلف أثر معالجة الضوضاء حسب دعم المتصفح والميكروفون.</p>
       </form>
     </dialog>
-    <dialog class="channel-dialog incoming-file-dialog" id="incoming-file-dialog" aria-labelledby="incoming-file-title">
+
+    <!-- ================= DIALOG: PROFILE ================= -->
+    <dialog class="modal profile-dialog" id="profile-dialog" aria-labelledby="profile-dialog-title">
+      <div class="profile-dialog-content">
+        <button class="dialog-close" id="profile-dialog-close" type="button" aria-label="إغلاق">
+          <svg aria-hidden="true"><use href="#i-x"></use></svg>
+        </button>
+        <span class="dialog-kicker">حساب صوت</span>
+        <h2 id="profile-dialog-title">الملف الشخصي</h2>
+        <div id="auth-view">
+          <div class="auth-mode-tabs" role="group" aria-label="نوع الحساب">
+            <button class="auth-mode-button is-active" id="login-mode-button" type="button" aria-pressed="true">تسجيل الدخول</button>
+            <button class="auth-mode-button" id="register-mode-button" type="button" aria-pressed="false">إنشاء حساب</button>
+          </div>
+          <form id="auth-form">
+            <label class="name-label" for="auth-username">اسم المستخدم</label>
+            <input class="text-input" id="auth-username" type="text" minlength="3" maxlength="32" autocomplete="username" required>
+            <label class="name-label auth-password-label" for="auth-password">كلمة المرور</label>
+            <input class="text-input" id="auth-password" type="password" minlength="10" maxlength="128" autocomplete="current-password" required>
+            <p class="profile-help" id="auth-password-help">كلمة المرور 10 محارف على الأقل.</p>
+            <p class="form-error" id="auth-error" role="alert"></p>
+            <button class="btn btn-accent dialog-submit" id="auth-submit" type="submit"><span>تسجيل الدخول</span></button>
+          </form>
+          <p class="profile-help">يمكنك الانضمام كضيف. الحساب مطلوب لحفظ اسمك وصورتك الشخصية.</p>
+        </div>
+        <div id="profile-view" class="hidden">
+          <p class="profile-account-name" id="profile-account-name"></p>
+          <div class="profile-picture-row">
+            <img class="profile-avatar-large hidden" id="profile-avatar-preview" alt="الصورة الشخصية الحالية">
+            <span class="profile-avatar-large profile-avatar-fallback" id="profile-avatar-fallback" aria-hidden="true">؟</span>
+            <label class="btn btn-ghost avatar-pick-button" for="profile-avatar-input">تغيير الصورة</label>
+            <input class="visually-hidden" id="profile-avatar-input" type="file" accept="image/jpeg,image/png,image/webp">
+          </div>
+          <p class="profile-help">JPG أو PNG أو WebP، بحد أقصى 2 MiB.</p>
+          <label class="name-label" for="profile-display-name">الاسم الظاهر</label>
+          <input class="text-input" id="profile-display-name" type="text" maxlength="32" autocomplete="nickname" required>
+          <p class="form-error" id="profile-error" role="alert"></p>
+          <div class="profile-actions">
+            <button class="btn btn-accent" id="save-profile-button" type="button"><span>حفظ الملف الشخصي</span></button>
+            <button class="btn btn-ghost" id="remove-avatar-button" type="button">إزالة الصورة</button>
+            <button class="btn btn-ghost logout-button" id="logout-button" type="button">تسجيل الخروج</button>
+          </div>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- ================= DIALOG: CREATE CHANNEL ================= -->
+    <dialog class="modal" id="channel-dialog" aria-labelledby="dialog-title">
+      <form id="channel-form">
+        <button class="dialog-close" id="dialog-close" type="button" aria-label="إغلاق">
+          <svg aria-hidden="true"><use href="#i-x"></use></svg>
+        </button>
+        <span class="dialog-kicker">مساحتك، بطريقتك</span>
+        <h2 id="dialog-title">أنشئ قناة صوتية</h2>
+        <p>اختر اسماً، ثم شارك رابط القناة مع أصدقائك.</p>
+        <label class="name-label" for="channel-input">اسم القناة</label>
+        <input class="text-input" id="channel-input" type="text" maxlength="48" placeholder="مثلاً: جلسة المساء" required>
+        <label class="check-row"><input id="channel-listed" type="checkbox" checked><span>إظهار القناة في مستودع القنوات العام</span></label>
+        <p class="form-error" id="channel-error" role="alert"></p>
+        <button class="btn btn-accent dialog-submit" type="submit"><span>إنشاء القناة</span></button>
+      </form>
+    </dialog>
+
+    <!-- ================= DIALOG: INCOMING FILE ================= -->
+    <dialog class="modal incoming-file-dialog" id="incoming-file-dialog" aria-labelledby="incoming-file-title">
       <form method="dialog">
         <span class="dialog-kicker">طلب مشاركة ملف</span>
         <h2 id="incoming-file-title">هل تقبل استلام الملف؟</h2>
         <p id="incoming-file-details"></p>
         <div class="dialog-actions">
-          <button class="secondary-button" id="decline-file" type="button">رفض</button>
-          <button class="join-button" id="accept-file" type="button"><span>قبول الملف</span></button>
+          <button class="btn btn-ghost" id="decline-file" type="button">رفض</button>
+          <button class="btn btn-accent" id="accept-file" type="button"><span>قبول الملف</span></button>
         </div>
       </form>
     </dialog>
-    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <!-- ================= DIALOG: REPOSITORY DOWNLOAD REQUEST ================= -->
+    <dialog class="modal incoming-file-dialog" id="download-request-dialog" aria-labelledby="download-request-title">
+      <form method="dialog">
+        <span class="dialog-kicker">طلب تنزيل من المستودع</span>
+        <h2 id="download-request-title">هل تسمح بتنزيل الملف؟</h2>
+        <p id="download-request-details"></p>
+        <div class="dialog-actions">
+          <button class="btn btn-ghost" id="decline-download-request" type="button">رفض الطلب</button>
+          <button class="btn btn-accent" id="accept-download-request" type="button"><span>قبول وبدء الإرسال</span></button>
+        </div>
+      </form>
+    </dialog>
   </body>
 </html>
