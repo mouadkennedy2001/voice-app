@@ -1,0 +1,14 @@
+{
+  "name": "sout",
+  "version": "1.0.0",
+  "private": true,
+  "description": "غرف دردشة صوتية مباشرة باستخدام WebRTC وNode.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  }
+}
